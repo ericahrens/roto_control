@@ -432,7 +432,7 @@ public class MainLayerHandler {
     
     public void activateParameter(final ParameterSettings setting) {
         pluginModeHandler.activateParameter(setting).ifPresent(this::handleParamUpdate);
-     }
+    }
     
     private void handleParamUpdate(final RotoParameter param) {
         if (!inPluginMode) {

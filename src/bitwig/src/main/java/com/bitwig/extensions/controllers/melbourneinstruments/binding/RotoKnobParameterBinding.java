@@ -159,8 +159,4 @@ public class RotoKnobParameterBinding extends Binding<RotoKnob, Parameter> {
                 knob.getNativeAbsoluteKnob().addBindingWithRange(getTarget().value(), 0.0, 1.0);
         }
     }
-
-    public boolean isNativeParameterBinding() {
-        return nativeParameterBinding;
-    }
 }

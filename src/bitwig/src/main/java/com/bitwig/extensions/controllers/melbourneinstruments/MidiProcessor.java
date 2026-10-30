@@ -172,7 +172,7 @@ public class MidiProcessor {
         hwKnob.setAdjustValueMatcher(midiIn.createAbsoluteCCValueMatcher(ROTO_MIDI_CHANNEL, ccNr));
     }
     
-    public void setHiResCcMatcher( AbsoluteHardwareKnob knob, int midiBase) {
+    public void setHiResCcMatcher(final AbsoluteHardwareKnob knob, final int midiBase) {
         final AbsoluteHardwareValueMatcher msbMatcher = midiIn.createAbsoluteCCValueMatcher(ROTO_MIDI_CHANNEL, midiBase);
         final AbsoluteHardwareValueMatcher lsbMatcher =
             midiIn.createAbsoluteCCValueMatcher(ROTO_MIDI_CHANNEL, midiBase + LSB_OFFSET);

@@ -77,7 +77,11 @@ public class RotoKnobParameterBinding extends Binding<RotoKnob, Parameter> {
             getTarget().touch(touched);
             if (!touched) {
                 knobChangeTime = System.currentTimeMillis();
-                touchRelease = knobChangeTime;
+                // Only the manual write path in handleKnobValueChanged consults touchRelease; the native
+                // host binding writes directly and relies on touch(false) for automation hand-over.
+                if (!nativeParameterBinding) {
+                    touchRelease = knobChangeTime;
+                }
             } else {
                 getSource().placeParameterUpdateDirect(displayValue);
                 touchRelease = -1;

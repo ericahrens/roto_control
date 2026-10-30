@@ -153,8 +153,8 @@ public class RotoKnobParameterBinding extends Binding<RotoKnob, Parameter> {
         final RotoKnob knob = getSource();
         updateValues(getTarget().get());
         knob.setActive(exists);
-        knob.updatePosition(true);
         knob.updateBytes(lowValue, highValue);
+        knob.updatePosition(true);
         if (nativeParameterBinding && nativeHardwareBinding == null) {
             nativeHardwareBinding =
                 knob.getNativeAbsoluteKnob().addBindingWithRange(getTarget().value(), 0.0, 1.0);

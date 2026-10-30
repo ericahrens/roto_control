@@ -32,7 +32,6 @@ public class RotoKnob {
         this.midiBase = index + FIRST_MSB_CC;
         this.index = index;
         this.midiProcessor = midiProcessor;
-        midiProcessor.setCcKnobMatcher(this);
         this.touchButton = surface.createHardwareButton("TOUCH_%d".formatted(index + 1));
         midiProcessor.setCcMatcher(this.touchButton, FIRST_TOUCH_CC + index);
         this.touchButton.isPressed().markInterested();
@@ -51,11 +50,13 @@ public class RotoKnob {
     }
 
     private void handleNativeValueChanged(final double value) {
+        if (midiProcessor.isCcInsBlocked()) {
+            return;
+        }
         final int fourteenBitValue = (int) Math.round(value * 16383.0);
         this.highValue = fourteenBitValue >> 7;
         this.lowValue = fourteenBitValue & 0x7F;
-        // The native matcher consumes the raw MSB/LSB events. Re-enter the existing local dispatch
-        // so every non-native mode and custom binding continues to receive the physical value.
+        // Forward to the local knob value so non-native modes and custom bindings still receive the physical value.
         knobValue.setForce(value);
     }
 
@@ -83,19 +84,9 @@ public class RotoKnob {
         return highValue;
     }
 
-    public void setHighByteValue(final int value) {
-        this.highValue = value;
-    }
-
     public void updateBytes(final int low, final int highValue) {
         this.lowValue = low;
         this.highValue = highValue;
-    }
-
-    public void setLowValue(final int lowValue) {
-        this.lowValue = lowValue;
-        final int value = lowValue | (highValue << 7);
-        knobValue.setForce(Math.min(1, value / 16382.0));
     }
 
     public HardwareButton getTouchButton() {

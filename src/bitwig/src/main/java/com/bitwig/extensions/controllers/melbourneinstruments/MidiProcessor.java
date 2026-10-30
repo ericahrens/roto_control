@@ -15,7 +15,6 @@ import com.bitwig.extension.controller.api.MidiOut;
 import com.bitwig.extension.controller.api.NoteInput;
 import com.bitwig.extensions.controllers.melbourneinstruments.binding.MeteringBinding;
 import com.bitwig.extensions.controllers.melbourneinstruments.control.RotoButton;
-import com.bitwig.extensions.controllers.melbourneinstruments.control.RotoKnob;
 import com.bitwig.extensions.controllers.melbourneinstruments.device.ParameterSettings;
 import com.bitwig.extensions.framework.di.Component;
 import com.bitwig.extensions.framework.time.TimedEvent;
@@ -54,8 +53,6 @@ public class MidiProcessor {
     private boolean initialized = false;
     int lastUpdateOnSendsNumber = -1;
     
-    private final Map<Integer, RotoKnob> valueMatcherMap = new HashMap<>();
-    private final Map<Integer, RotoKnob> valueMatcherBase2Map = new HashMap<>();
     protected final Queue<TimedEvent> timedEvents = new ConcurrentLinkedQueue<>();
     private final List<DisplayResetState> resetCalls = new ArrayList<>();
     private final Map<Integer, int[]> pendingCCs = new HashMap<>();
@@ -182,11 +179,6 @@ public class MidiProcessor {
     
     public void setCcOutBlocked(final boolean ccOutBlocked) {
         this.ccOutBlocked = ccOutBlocked;
-    }
-    
-    public void setCcKnobMatcher(final RotoKnob knob) {
-        valueMatcherMap.put(knob.getMidiBase(), knob);
-        valueMatcherBase2Map.put(knob.getMidiBase() + 0x20, knob);
     }
     
     public void queueEvent(final TimedEvent event) {
@@ -335,20 +327,7 @@ public class MidiProcessor {
     
     private void handleMidiIn(final int status, final int data1, final int data2) {
         if (status == 0xBF) {
-            if (ccInsBlocked) {
-                return;
-            }
-            RotoKnob knob = valueMatcherMap.get(data1);
-            if (knob != null) {
-                knob.setHighByteValue(data2);
-            } else {
-                knob = valueMatcherBase2Map.get(data1);
-                if (knob != null) {
-                    knob.setLowValue(data2);
-                } else {
-                    RotoControlExtension.println("FREE => %02X %02X %02X", status, data1, data2);
-                }
-            }
+            RotoControlExtension.println("FREE => %02X %02X %02X", status, data1, data2);
         } else {
             RotoControlExtension.println("MIDI => %02X %02X %02X", status, data1, data2);
         }
@@ -488,6 +467,10 @@ public class MidiProcessor {
         inBlockTime = System.currentTimeMillis();
     }
     
+    public boolean isCcInsBlocked() {
+        return ccInsBlocked;
+    }
+
     public void unBlockCc() {
         //RotoControlExtension.println("** UN-BLOCK CC");
         this.ccInsBlocked = false;

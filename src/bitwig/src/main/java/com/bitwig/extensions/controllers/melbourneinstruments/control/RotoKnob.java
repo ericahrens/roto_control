@@ -10,11 +10,8 @@ import com.bitwig.extensions.controllers.melbourneinstruments.MidiProcessor;
 import com.bitwig.extensions.framework.values.BasicDoubleValue;
 
 public class RotoKnob {
-    private static final int MIDI_CHANNEL = 0xF;
     private static final int FIRST_MSB_CC = 0xC;
-    private static final int LSB_OFFSET = 0x20;
     private static final int FIRST_TOUCH_CC = 0x34;
-
     private final int midiBase;
     private final int index;
     private int lowValue;
@@ -36,23 +33,15 @@ public class RotoKnob {
         midiProcessor.setCcMatcher(this.touchButton, FIRST_TOUCH_CC + index);
         this.touchButton.isPressed().markInterested();
 
-        final MidiIn midiIn = midiProcessor.getHost().getMidiInPort(0);
-        final AbsoluteHardwareValueMatcher msbMatcher = midiIn.createAbsoluteCCValueMatcher(MIDI_CHANNEL, midiBase);
-        final AbsoluteHardwareValueMatcher lsbMatcher =
-            midiIn.createAbsoluteCCValueMatcher(MIDI_CHANNEL, midiBase + LSB_OFFSET);
-
         this.nativeAbsoluteKnob = surface.createAbsoluteHardwareKnob("ROTO_NATIVE_%d".formatted(index + 1));
         nativeAbsoluteKnob.setIndexInGroup(index);
-        nativeAbsoluteKnob.setAdjustValueMatcher(midiIn.createSequencedValueMatcher(msbMatcher, lsbMatcher, false));
+        midiProcessor.setHiResCcMatcher(this.nativeAbsoluteKnob, midiBase);
         nativeAbsoluteKnob.disableTakeOver();
         nativeAbsoluteKnob.setHardwareButton(touchButton);
         nativeAbsoluteKnob.value().addValueObserver(this::handleNativeValueChanged);
     }
 
     private void handleNativeValueChanged(final double value) {
-        if (midiProcessor.isCcInsBlocked()) {
-            return;
-        }
         final int fourteenBitValue = (int) Math.round(value * 16383.0);
         this.highValue = fourteenBitValue >> 7;
         this.lowValue = fourteenBitValue & 0x7F;
@@ -66,10 +55,6 @@ public class RotoKnob {
 
     public void setActive(final boolean active) {
         this.active = active;
-    }
-
-    public int getMidiBase() {
-        return midiBase;
     }
 
     public int getIndex() {

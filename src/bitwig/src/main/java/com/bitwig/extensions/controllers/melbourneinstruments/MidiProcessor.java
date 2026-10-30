@@ -8,6 +8,7 @@ import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import com.bitwig.extension.controller.api.AbsoluteHardwareKnob;
+import com.bitwig.extension.controller.api.AbsoluteHardwareValueMatcher;
 import com.bitwig.extension.controller.api.ControllerHost;
 import com.bitwig.extension.controller.api.HardwareButton;
 import com.bitwig.extension.controller.api.MidiIn;
@@ -24,6 +25,8 @@ public class MidiProcessor {
     
     private static final String RCV_HEADER = "f000220302";
     private static final int RCV_HEADER_OFFSET = RCV_HEADER.length();
+    public static final int ROTO_MIDI_CHANNEL = 0xF;
+    private static final int LSB_OFFSET = 0x20;
     //private RotoPreferences preferences;
     private String version;
     public static final int CMD_ID_GENERAL = 0xA;
@@ -48,8 +51,6 @@ public class MidiProcessor {
     private final MidiOut midiOut;
     private MainLayerHandler mixState;
     private boolean ccOutBlocked = false;
-    private boolean ccInsBlocked = false;
-    private long inBlockTime = 0L;
     private boolean initialized = false;
     int lastUpdateOnSendsNumber = -1;
     
@@ -152,7 +153,6 @@ public class MidiProcessor {
             "MIDI", "8?????", "9?????", "A?????", "D?????", "B0????", "B1????", "B2????", "B3????", "B4????", "B5????",
             "B6????", "B7????", "B8????", "B9????", "BA????", "BB????", "BC????", "BD????", "BE????");
         noteInput.setShouldConsumeEvents(true);
-        midiIn.setMidiCallback(this::handleMidiIn);
         midiIn.setSysexCallback(this::handleSysEx);
         for (int i = 0; i < 8; i++) {
             this.resetCalls.add(new DisplayResetState());
@@ -165,16 +165,23 @@ public class MidiProcessor {
     
     public void setCcMatcher(final RotoButton button, final int ccNr) {
         final HardwareButton hwButton = button.getHwButton();
-        hwButton.pressedAction().setActionMatcher(midiIn.createCCActionMatcher(0xF, ccNr, 127));
-        hwButton.releasedAction().setActionMatcher(midiIn.createCCActionMatcher(0xF, ccNr, 0));
+        hwButton.pressedAction().setActionMatcher(midiIn.createCCActionMatcher(ROTO_MIDI_CHANNEL, ccNr, 127));
+        hwButton.releasedAction().setActionMatcher(midiIn.createCCActionMatcher(ROTO_MIDI_CHANNEL, ccNr, 0));
         final AbsoluteHardwareKnob hwKnob = button.getHwKnob();
         hwKnob.disableTakeOver();
-        hwKnob.setAdjustValueMatcher(midiIn.createAbsoluteCCValueMatcher(0xF, ccNr));
+        hwKnob.setAdjustValueMatcher(midiIn.createAbsoluteCCValueMatcher(ROTO_MIDI_CHANNEL, ccNr));
+    }
+    
+    public void setHiResCcMatcher( AbsoluteHardwareKnob knob, int midiBase) {
+        final AbsoluteHardwareValueMatcher msbMatcher = midiIn.createAbsoluteCCValueMatcher(ROTO_MIDI_CHANNEL, midiBase);
+        final AbsoluteHardwareValueMatcher lsbMatcher =
+            midiIn.createAbsoluteCCValueMatcher(ROTO_MIDI_CHANNEL, midiBase + LSB_OFFSET);
+        knob.setAdjustValueMatcher(midiIn.createSequencedValueMatcher(msbMatcher, lsbMatcher, false));
     }
     
     public void setCcMatcher(final HardwareButton button, final int ccNr) {
-        button.pressedAction().setActionMatcher(midiIn.createCCActionMatcher(0xF, ccNr, 127));
-        button.releasedAction().setActionMatcher(midiIn.createCCActionMatcher(0xF, ccNr, 0));
+        button.pressedAction().setActionMatcher(midiIn.createCCActionMatcher(ROTO_MIDI_CHANNEL, ccNr, 127));
+        button.releasedAction().setActionMatcher(midiIn.createCCActionMatcher(ROTO_MIDI_CHANNEL, ccNr, 0));
     }
     
     public void setCcOutBlocked(final boolean ccOutBlocked) {
@@ -197,10 +204,6 @@ public class MidiProcessor {
         }
         if (!pendingCCs.isEmpty() && !ccOutBlocked) {
             flushPendingCCs();
-        }
-        if (ccInsBlocked && (System.currentTimeMillis() - inBlockTime) > 1000) {
-            //RotoControlExtension.println(" Free Blockage");
-            unBlockCc();
         }
         paramBuffer.updatePendingParamUpdates();
         resetCalls.forEach(DisplayResetState::process);
@@ -322,14 +325,6 @@ public class MidiProcessor {
         if (!initialized) {
             initialized = true;
             host.scheduleTask(this::processMidi, 50);
-        }
-    }
-    
-    private void handleMidiIn(final int status, final int data1, final int data2) {
-        if (status == 0xBF) {
-            RotoControlExtension.println("FREE => %02X %02X %02X", status, data1, data2);
-        } else {
-            RotoControlExtension.println("MIDI => %02X %02X %02X", status, data1, data2);
         }
     }
     
@@ -459,22 +454,6 @@ public class MidiProcessor {
     
     public void notifyDisplayCall(final int index, final Runnable resetCallback) {
         resetCalls.get(index).set(resetCallback);
-    }
-    
-    public void blockCCIns() {
-        //RotoControlExtension.println("## BLOCK CC");
-        this.ccInsBlocked = true;
-        inBlockTime = System.currentTimeMillis();
-    }
-    
-    public boolean isCcInsBlocked() {
-        return ccInsBlocked;
-    }
-
-    public void unBlockCc() {
-        //RotoControlExtension.println("** UN-BLOCK CC");
-        this.ccInsBlocked = false;
-        inBlockTime = -1L;
     }
     
     private static byte[] getParamUpdate(int index, boolean onButton, String value) {

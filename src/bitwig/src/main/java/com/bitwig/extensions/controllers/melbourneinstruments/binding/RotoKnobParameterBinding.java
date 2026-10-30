@@ -52,11 +52,6 @@ public class RotoKnobParameterBinding extends Binding<RotoKnob, Parameter> {
         this(knob, parameter, null, touchAutomationActive, true);
     }
 
-    public RotoKnobParameterBinding(final RotoKnob knob, final Parameter parameter,
-        final BooleanValueObject touchAutomationActive, final boolean nativeParameterBinding) {
-        this(knob, parameter, null, touchAutomationActive, nativeParameterBinding);
-    }
-
     private void handleInternalDisplayChange(String displayValue) {
         this.displayValue = displayValue;
         if (isActive()) {

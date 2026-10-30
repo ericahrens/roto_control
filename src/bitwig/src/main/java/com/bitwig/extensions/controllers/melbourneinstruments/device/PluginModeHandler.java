@@ -217,11 +217,9 @@ public class PluginModeHandler implements ScrollViewSet {
             this.pluginPosition = pos;
             deviceBank.scrollPosition().set(this.firstPlugin);
             mainHandler.markUpdateRequired(FocusSource.PLUGIN);
-            midiProcessor.blockCCIns();
         } else {
             this.pluginPosition = pos;
             mainHandler.markUpdateRequired(FocusSource.PLUGIN);
-            midiProcessor.blockCCIns();
         }
     }
     

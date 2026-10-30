@@ -75,7 +75,7 @@
                      <sourceFile>${project.build.directory}/${project.build.finalName}.jar
                      </sourceFile>
                      <!-- ${bitwig.extension.directory} -->
-                     <destinationFile>${bitwig.extension.directory}/Roto-Control_v3.bwextension
+                     <destinationFile>${bitwig.extension.directory}/Roto-Control_v3.1.bwextension
                      </destinationFile>
                   </configuration>
                </execution>

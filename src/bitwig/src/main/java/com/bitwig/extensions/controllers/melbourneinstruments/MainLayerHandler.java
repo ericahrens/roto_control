@@ -432,9 +432,6 @@ public class MainLayerHandler {
     
     public void activateParameter(final ParameterSettings setting) {
         pluginModeHandler.activateParameter(setting).ifPresent(this::handleParamUpdate);
-        if (setting.index() == 8) {
-            midiProcessor.unBlockCc();
-        }
     }
     
     private void handleParamUpdate(final RotoParameter param) {
